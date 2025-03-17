@@ -7,12 +7,12 @@
     
 
     <!-- Curious what created these downloads? Check out https://hydraulic.dev -->
-    <meta name="generator" content="Conveyor: 16.0"/>
+    <meta name="generator" content="Conveyor: 17.0"/>
 
     <link rel=icon href="icon.svg" sizes="any" type="image/svg+xml">
     
 
-    <title>디시 주작기</title>
+    <title>디시 주작기 Dcautowrite</title>
 
     <style>
         :root {
@@ -294,9 +294,9 @@
                 <img width="256" height="256" src="icon.svg">
             </div>
 
-            <h1 id="title">디시 주작기</h1>
+            <h1 id="title">디시 주작기 Dcautowrite</h1>
 
-            <span id="version">Version <span>1.2.0.1</span></span>
+            <span id="version">Version <span>1.2.0.2</span></span>
 
             <div id="pane-win">
                 
@@ -317,9 +317,9 @@
                     
                         <p class="smaller-fonts" style="line-height: 200%" id="windows-download-options">
                             <span id="amd-title">Intel: &nbsp;&nbsp;</span>
-                            <a href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite-1.2.0.1-windows-amd64.zip" download>Download .zip</a> &nbsp;&nbsp;
-                            <a href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite-1.2.0.1.x64.msix" download>Download .msix</a> &nbsp;&nbsp;
-                            <a href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite.appinstaller" download>Download .appinstaller</a>
+                            <a href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite-1.2.0.2-windows-amd64.zip" download>Download .zip</a> &nbsp;&nbsp;
+                            <a href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite-1.2.0.2.x64.msix" download>Download .msix</a> &nbsp;&nbsp;
+                            <a href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite-g7g8462njkq6r.appinstaller" download>Download .appinstaller</a>
                         </p>
                     
 
@@ -347,6 +347,9 @@
 
                 
                     <p>Sorry, this application is not available on your current operating system.</p>
+                
+
+                <!-- Show unavailable message if only one arch is available but it's the wrong one -->
                 
 
                 <div class="alternative-downloads smaller-fonts">
@@ -433,12 +436,26 @@
             if (os == "mac") {
                 if (arch == "amd64") {
                     let el = document.getElementById("mac-aarch64");
-                    if (el)
+                    if (el) {
                         el.style = "display: none";
+                        // If we only have ARM builds, show the unavailable message
+                        let amd = document.getElementById("mac-amd64");
+                        if (!amd) {
+                            let unavail = document.getElementById("mac-unavailable");
+                            if (unavail) unavail.style = "display: block";
+                        }
+                    }
                 } else if (arch == "aarch64") {
                     let el = document.getElementById("mac-amd64");
-                    if (el)
+                    if (el) {
                         el.style = "display: none";
+                        // If we only have Intel builds, show the unavailable message
+                        let arm = document.getElementById("mac-aarch64");
+                        if (!arm) {
+                            let unavail = document.getElementById("mac-unavailable");
+                            if (unavail) unavail.style = "display: block";
+                        }
+                    }
                 }
             } else if (os == "linux") {
                 if (arch == "amd64") {
@@ -495,7 +512,14 @@
 
         const panes = document.getElementById("panes");
         if (panes.children.length == 1) {
-            // Only one OS supported. Do nothing - it will be visible already.
+            // Only one OS supported. Show the single pane.
+            for (const o of ["win", "mac", "linux"]) {
+                let pane = document.getElementById("pane-" + o);
+                if (pane) {
+                    pane.style = "";  // Make visible
+                    break;
+                }
+            }
         } else if (document.location.hash) {
             showOS(document.location.hash.substring(1));
         } else {
