@@ -103,11 +103,14 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet; then
+          # 우선 우리가 수정한 파일을 스테이징
+          git add download.html
+
+          # 스테이징된 내용이 실제로 바뀐 게 없으면 커밋 안 함
+          if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
 
-          git add download.html
           git commit -m "Update download.html for ${{ steps.resolve_version.outputs.TAG }}"
           git push origin gh-pages
