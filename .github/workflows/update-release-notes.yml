@@ -33,7 +33,7 @@ jobs:
 디시 주작기 ${TAG}
 [Download](https://clcocd.github.io/DC-AutoWrite/download.html)
 
-※Mac유저는 파일을 직접 다운받지 말고 터미널에서 다운받는거 권장※
+※Mac유저는 파일을 직접 다운받지 말고 터미널에서 아래 명령어를 붙여넣고 실행하세요.※
 \`curl -L https://github.com/clcocd/DC-AutoWrite/releases/latest/download/launch.mac | bash\`
 EOF
 )
