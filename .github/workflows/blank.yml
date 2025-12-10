@@ -1,12 +1,17 @@
-name: Update download.html
+name: Update download.html on release
 
 on:
   release:
-    types: [published]
-  workflow_dispatch:
+    types: [published]        # 새 릴리스 publish 시 자동 실행
+  workflow_dispatch:          # 수동 실행도 지원
+    inputs:
+      version:
+        description: "수동 실행 시 쓸 버전 (예: 1.0.0). 비워두면 릴리스 태그 사용."
+        required: false
+        type: string
 
 permissions:
-  contents: write
+  contents: write             # gh-pages 브랜치에 push 필요
 
 jobs:
   update-download-page:
@@ -18,45 +23,60 @@ jobs:
         with:
           ref: gh-pages
 
-      - name: Install GitHub CLI
+      - name: Debug - show files
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gh
+          echo "== pwd =="
+          pwd
+          echo "== ls =="
+          ls -la
+          echo "== ls template =="
+          ls -la download* || echo "no download* files"
 
-      - name: Resolve tag and version
+      - name: Resolve version
         id: resolve_version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 이벤트 종류에 따라 태그 결정
           if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
+            TAG="${{ github.event.release.tag_name }}"   # ex) v1.2.3
+            VERSION="${TAG#v}"
           else
-            # 수동 실행(workflow_dispatch)일 때는 최신 릴리스 태그 사용
-            TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')
+            # 수동 실행인 경우: 입력값에서 버전 사용
+            VERSION="${{ inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              echo "version input is empty. 수동 실행 시 version 입력이 필요합니다." >&2
+              exit 1
+            fi
+            TAG="v${VERSION}"
           fi
 
           echo "TAG=$TAG"
-          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
-
-          VERSION="${TAG#v}"   # v1.2.3 -> 1.2.3
           echo "VERSION=$VERSION"
+
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Generate download.html from template
         run: |
+          TAG="${{ steps.resolve_version.outputs.TAG }}"
           VERSION="${{ steps.resolve_version.outputs.VERSION }}"
 
           TEMPLATE="download.template.html"
           OUTPUT="download.html"
 
+          echo "Using TAG=$TAG VERSION=$VERSION"
+          echo "Template file: $TEMPLATE"
+          echo "Output file  : $OUTPUT"
+
           if [ ! -f "$TEMPLATE" ]; then
             echo "Template file '$TEMPLATE' not found in gh-pages branch." >&2
+            ls -la
             exit 1
           fi
 
           cp "$TEMPLATE" "$OUTPUT"
           sed -i "s/__VERSION__/${VERSION}/g" "$OUTPUT"
+
+          echo "== HEAD OF download.html =="
+          head -n 20 "$OUTPUT" || true
 
       - name: Commit and push if changed
         run: |
@@ -64,7 +84,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           if git diff --quiet; then
-            echo "No changes to commit"
+            echo "No changes to commit."
             exit 0
           fi
 
