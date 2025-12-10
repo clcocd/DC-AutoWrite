@@ -259,6 +259,35 @@
     } else {
       // other → 둘 다 표시 유지
     }
+
+     // Make code copyable by clicking the button.
+        Array.from(document.getElementsByClassName("copy-button")).forEach((el) => {
+            el.addEventListener("click", (event) => {
+                const mimeType = 'text/plain';
+                const data = el.parentElement.parentElement.parentElement.children[0].textContent.split("\n").map(str => str.replace("$\xa0", "").replace("PS>\xa0", "").trim()).join("\n");
+
+                try {
+                    const promise = Promise.resolve(new Blob([data], {
+                        type: mimeType
+                    }));
+
+                    const clipboardItem = new ClipboardItem({
+                        [mimeType]: promise
+                    }, {
+                        presentationStyle: "unspecified"
+                    });
+
+                    navigator.clipboard.write([clipboardItem])
+                } catch (e) {
+                    // Try again with the older API. This is for Firefox.
+                    navigator.clipboard.writeText(data);
+                }
+
+                // Make the tooltip appear to confirm to the user.
+                var index = document.styleSheets[0].insertRule(".tooltip:before, .tooltip:after { opacity:1; }", document.styleSheets[0].cssRules.length);
+                setTimeout(function() { document.styleSheets[0].removeRule(index) }, 5000);
+            })
+        })
   })();
 </script>
 </body>
