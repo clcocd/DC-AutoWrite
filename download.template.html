@@ -184,8 +184,8 @@
       margin-top: 1.8rem;
       font-size: 0.8rem;
       color: var(--muted);
-      text-align: left;
-    }
+      text-align: center;
+    }  
 
     .note a {
       color: inherit;
@@ -207,6 +207,11 @@
     .os-switch-link {
       cursor: pointer;
       text-decoration: underline;
+    }
+    
+    .os-switch-link.active {
+      font-weight: 600;
+      text-decoration: none;
     }
 
     @media (max-width: 480px) {
@@ -279,10 +284,12 @@
     <div class="copy-status" id="copy-mac-status" aria-live="polite"></div>
   </div>
 
-  <div class="note">
-    <!-- 여기 추가된 부분 -->
+ <div class="note">
     <div class="os-switch">
-      다른 OS : <span class="os-switch-link" onclick="showWindowsSection()">윈도우</span>
+      OS 전환 :
+      <span class="os-switch-link" data-os="mac" onclick="switchOS('mac')">macOS</span>
+      ·
+      <span class="os-switch-link" data-os="win" onclick="switchOS('win')">윈도우</span>
     </div>
 
     • 이 페이지는 GitHub Actions에서 릴리스 태그를 기준으로 생성됩니다.<br/>
@@ -292,15 +299,41 @@
 </div>
 
 <script>
-  // 다른 OS : 윈도우 클릭 시 강제로 Windows 섹션 보여주기
-  function showWindowsSection() {
+  // OS 섹션 보여주기/숨기기 + 토글 UI 업데이트
+  function applyOSView(os) {
     var win = document.getElementById("section-win");
     var mac = document.getElementById("section-mac");
-    if (win) win.style.display = "";
-    if (mac) mac.style.display = "none";
+
+    if (os === "win") {
+      if (win) win.style.display = "";
+      if (mac) mac.style.display = "none";
+    } else if (os === "mac") {
+      if (win) win.style.display = "none";
+      if (mac) mac.style.display = "";
+    } else {
+      // 기타 OS: 둘 다 보여주기
+      if (win) win.style.display = "";
+      if (mac) mac.style.display = "";
+    }
+
+    // OS 전환 링크 active 상태 업데이트
+    var links = document.querySelectorAll(".os-switch-link");
+    links.forEach(function (el) {
+      var target = el.getAttribute("data-os");
+      if (target === os) {
+        el.classList.add("active");
+      } else {
+        el.classList.remove("active");
+      }
+    });
   }
 
-  // OS 감지해서 섹션 토글
+  // note 영역에서 호출하는 함수
+  function switchOS(os) {
+    applyOSView(os);
+  }
+
+  // 초기: 브라우저 userAgent로 OS 감지
   (function () {
     var ua = navigator.userAgent || "";
     var os = "other";
@@ -313,15 +346,7 @@
       os = "linux";
     }
 
-    var win = document.getElementById("section-win");
-    var mac = document.getElementById("section-mac");
-
-    // Windows: Windows만, macOS: macOS만, 기타: 둘 다
-    if (os === "win") {
-      if (mac) mac.style.display = "none";
-    } else if (os === "mac") {
-      if (win) win.style.display = "none";
-    }
+    applyOSView(os);
   })();
 
   // macOS 명령어 클립보드 복사
