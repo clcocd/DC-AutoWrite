@@ -6,7 +6,7 @@ on:
   workflow_dispatch:          # 수동 실행도 지원
     inputs:
       version:
-        description: "수동 실행 시 쓸 버전 (예: 1.0.0). 비워두면 릴리스 태그 사용."
+        description: "수동 실행 시 쓸 버전 (예: 1.0.0). 비워두면 최신 릴리스 태그 사용."
         required: false
         type: string
 
@@ -29,30 +29,50 @@ jobs:
           pwd
           echo "== ls =="
           ls -la
-          echo "== ls template =="
+          echo "== ls download* =="
           ls -la download* || echo "no download* files"
+
+      - name: Install GitHub CLI (for manual runs without version)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
 
       - name: Resolve version
         id: resolve_version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "event_name=${{ github.event_name }}"
+          INPUT_VERSION="${{ inputs.version }}"
+
           if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"   # ex) v1.2.3
-            VERSION="${TAG#v}"
+            # 릴리스 이벤트인 경우: 이벤트에서 태그 바로 사용
+            TAG="${{ github.event.release.tag_name }}"      # 예: v1.2.3
+            VERSION="${TAG#v}"                              # 1.2.3
           else
-            # 수동 실행인 경우: 입력값에서 버전 사용
-            VERSION="${{ inputs.version }}"
-            if [ -z "$VERSION" ]; then
-              echo "version input is empty. 수동 실행 시 version 입력이 필요합니다." >&2
-              exit 1
+            # 수동 실행(workflow_dispatch)
+            if [ -n "$INPUT_VERSION" ]; then
+              # 사용자가 version 입력한 경우
+              VERSION="$INPUT_VERSION"
+              case "$VERSION" in
+                v*) TAG="$VERSION" ;;                       # v1.2.3 형식이면 그대로
+                *)  TAG="v$VERSION" ;;                      # 1.2.3 형식이면 v 붙여줌
+              esac
+            else
+              # 입력이 비어 있으면 latest 릴리스 태그 사용
+              TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq '.tag_name')
+              VERSION="${TAG#v}"
             fi
-            TAG="v${VERSION}"
           fi
 
           echo "TAG=$TAG"
           echo "VERSION=$VERSION"
 
-          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          {
+            echo "TAG=$TAG"
+            echo "VERSION=$VERSION"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Generate download.html from template
         run: |
