@@ -1,0 +1,51 @@
+name: Update download.html on release
+
+on:
+  release:
+    types: [published]  # 새 릴리스가 publish 되었을 때 실행
+
+permissions:
+  contents: write       # gh-pages 브랜치에 push 하려면 필요
+
+jobs:
+  update-download-page:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages        # 다운로드 페이지가 들어있는 브랜치
+
+      - name: Generate download.html from template
+        run: |
+          TAG="${{ github.event.release.tag_name }}"   # 예: v1.2.3
+          VERSION="${TAG#v}"                           # v 떼고 1.2.3
+
+          TEMPLATE="download.template.html"
+          OUTPUT="download.html"
+
+          if [ ! -f "$TEMPLATE" ]; then
+            echo "Template file '$TEMPLATE' not found in gh-pages branch." >&2
+            exit 1
+          fi
+
+          # 템플릿을 복사해서 실제 배포용 파일 생성
+          cp "$TEMPLATE" "$OUTPUT"
+
+          # __VERSION__ → 실제 버전으로 치환
+          sed -i "s/__VERSION__/${VERSION}/g" "$OUTPUT"
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add download.html
+          git commit -m "Update download.html for ${{ github.event.release.tag_name }}"
+          git push origin gh-pages
