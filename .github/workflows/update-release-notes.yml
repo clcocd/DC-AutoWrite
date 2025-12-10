@@ -1,0 +1,46 @@
+name: Update release notes
+
+on:
+  release:
+    types: [published]        # 릴리스가 Publish 될 때마다 실행
+
+permissions:
+  contents: write             # 릴리스 수정에 필요
+
+jobs:
+  update-notes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Update release notes body
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GitHub가 던져주는 이벤트 정보
+          TAG="${{ github.event.release.tag_name }}"   # 예: v1.0.0
+          RELEASE_ID="${{ github.event.release.id }}"
+
+          echo "TAG=$TAG"
+          echo "RELEASE_ID=$RELEASE_ID"
+
+          # 여기에 Release Notes 본문 템플릿 작성
+          BODY=$(cat <<EOF
+디시 주작기 ${TAG}
+[Download](https://clcocd.github.io/DC-AutoWrite/download.html)
+
+※Mac유저는 파일를 직접 다운받지 말고 터미널에서 다운받는거 권장※
+\`curl -L https://github.com/clcocd/DC-AutoWrite/releases/latest/download/launch.mac | bash\`
+EOF
+)
+
+          # GitHub API로 해당 릴리스의 body 필드를 덮어쓰기
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID} \
+            -f body="$BODY"
