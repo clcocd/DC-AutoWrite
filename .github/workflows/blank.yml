@@ -2,8 +2,8 @@ name: Update download.html on release
 
 on:
   release:
-    types: [published]   # 새 릴리스가 publish 되었을 때 자동 실행
-  workflow_dispatch:      # 수동 실행도 허용
+    types: [published]   # 새 릴리스 publish 시 자동 실행
+  workflow_dispatch:      # 수동 실행도 가능하게
 
 permissions:
   contents: write         # gh-pages 브랜치에 push 하려면 필요
@@ -16,7 +16,21 @@ jobs:
       - name: Checkout gh-pages
         uses: actions/checkout@v4
         with:
-          ref: gh-pages        # 다운로드 페이지가 들어있는 브랜치
+          ref: gh-pages
+
+      - name: Debug: show current branch and files
+        run: |
+          echo "== git branch =="
+          git branch
+          echo
+          echo "== pwd =="
+          pwd
+          echo
+          echo "== ls -al =="
+          ls -al
+          echo
+          echo "== find download* =="
+          find . -maxdepth 2 -iname "download*"
 
       - name: Install GitHub CLI (for manual runs)
         run: |
@@ -28,12 +42,63 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 이벤트 종류에 따라 TAG 결정
           if [ "${{ github.event_name }}" = "release" ]; then
-            # 릴리스 이벤트일 때는 컨텍스트에서 바로 태그 사용
             TAG="${{ github.event.release.tag_name }}"
           else
-            # 수동 실행(workflow_dispatch)일 때는 최신 릴리스 태그 조회
+            TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq '.tag_name')
+          fi
+
+          echo "TAG=$TAG"
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate download.html from template
+        run: |
+          TAG="${{ steps.resolve_version.outputs.TAG }}"
+          VERSION="${{ steps.resolve_version.outputs.VERSION }}"
+
+          TEMPLATE="download.template.html"
+          OUTPUT="download.html"
+
+          echo "Using template: $TEMPLATE"
+          echo "Will write to : $OUTPUT"
+
+          if [ ! -f "$TEMPLATE" ]; then
+            echo "ERROR: Template file '$TEMPLATE' not found in gh-pages branch." >&2
+            echo "현재 디렉토리 내용:"
+            ls -al
+            exit 1
+          fi
+
+          # 템플릿 복사
+          cp "$TEMPLATE" "$OUTPUT"
+
+          # 자리표시자 치환
+          sed -i "s/__VERSION__/${VERSION}/g" "$OUTPUT"
+
+          echo "== ls -al after generation =="
+          ls -al
+
+          echo
+          echo "== HEAD diff =="
+          git diff
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet; then
+            echo "No changes to commit (git diff is empty)"
+            exit 0
+          fi
+
+          git add download.html
+          git commit -m "Update download.html for ${{ steps.resolve_version.outputs.TAG }}"
+          git push origin gh-pages
             TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq '.tag_name')
           fi
 
