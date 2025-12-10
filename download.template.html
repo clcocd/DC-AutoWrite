@@ -185,7 +185,7 @@
       font-size: 0.8rem;
       color: var(--muted);
       text-align: left;
-    }  
+    }
 
     .note a {
       color: inherit;
@@ -199,20 +199,18 @@
       border-radius: 4px;
     }
 
-    /* 추가: OS 전환 링크 스타일 */
     .os-switch {
       margin-bottom: 1.5rem;
-      text-align: center; 
+      text-align: center;
+    }
+
+    .os-switch-label {
+      margin-right: 0.25rem;
     }
 
     .os-switch-link {
       cursor: pointer;
       text-decoration: underline;
-    }
-    
-    .os-switch-link.active {
-      font-weight: 600;
-      text-decoration: none;
     }
 
     @media (max-width: 480px) {
@@ -246,7 +244,6 @@
       Windows <small>(Intel / x64)</small>
     </div>
 
-    <!-- 설치기 (버전과 무관, latest 기준) -->
     <a class="btn-primary"
        href="https://github.com/clcocd/DC-AutoWrite/releases/latest/download/dcautowrite.exe"
        download>
@@ -285,12 +282,11 @@
     <div class="copy-status" id="copy-mac-status" aria-live="polite"></div>
   </div>
 
- <div class="note">
-    <div class="os-switch">
-      OS 전환 :
-      <span class="os-switch-link" data-os="mac" onclick="switchOS('mac')">macOS</span>
-      ·
-      <span class="os-switch-link" data-os="win" onclick="switchOS('win')">윈도우</span>
+  <div class="note">
+    <!-- 여기서 OS 전환 문구가 동적으로 바뀜 -->
+    <div class="os-switch" id="os-switch" style="display:none">
+      <span class="os-switch-label" id="os-switch-label"></span>
+      <span class="os-switch-link" id="os-switch-link" onclick="toggleOS()"></span>
     </div>
 
     • 이 페이지는 GitHub Actions에서 릴리스 태그를 기준으로 생성됩니다.<br/>
@@ -300,10 +296,18 @@
 </div>
 
 <script>
-  // OS 섹션 보여주기/숨기기 + 토글 UI 업데이트
+  // 현재 보여주는 OS 상태
+  var currentOS = "win";
+
+  // OS 뷰 적용 + "다른 OS : XXX" 문구 갱신
   function applyOSView(os) {
     var win = document.getElementById("section-win");
     var mac = document.getElementById("section-mac");
+    var switchBox = document.getElementById("os-switch");
+    var switchLabel = document.getElementById("os-switch-label");
+    var switchLink = document.getElementById("os-switch-link");
+
+    currentOS = os;
 
     if (os === "win") {
       if (win) win.style.display = "";
@@ -312,29 +316,38 @@
       if (win) win.style.display = "none";
       if (mac) mac.style.display = "";
     } else {
-      // 기타 OS: 둘 다 보여주기
+      // 기타 OS면 둘 다 보여주기
       if (win) win.style.display = "";
       if (mac) mac.style.display = "";
     }
 
-    // OS 전환 링크 active 상태 업데이트
-    var links = document.querySelectorAll(".os-switch-link");
-    links.forEach(function (el) {
-      var target = el.getAttribute("data-os");
-      if (target === os) {
-        el.classList.add("active");
+    // 전환 링크 문구 업데이트
+    if (switchBox && switchLabel && switchLink) {
+      if (os === "win") {
+        switchBox.style.display = "block";
+        switchLabel.textContent = "다른 OS : ";
+        switchLink.textContent = "macOS";
+      } else if (os === "mac") {
+        switchBox.style.display = "block";
+        switchLabel.textContent = "다른 OS : ";
+        switchLink.textContent = "윈도우";
       } else {
-        el.classList.remove("active");
+        // 기타 OS에서는 굳이 전환 텍스트 안 보여줘도 됨
+        switchBox.style.display = "none";
       }
-    });
+    }
   }
 
-  // note 영역에서 호출하는 함수
-  function switchOS(os) {
-    applyOSView(os);
+  // note 영역의 "다른 OS : XXX" 눌렀을 때 토글
+  function toggleOS() {
+    if (currentOS === "win") {
+      applyOSView("mac");
+    } else {
+      applyOSView("win");
+    }
   }
 
-  // 초기: 브라우저 userAgent로 OS 감지
+  // 초기: 브라우저 UA로 OS 감지 → 기본 뷰 적용
   (function () {
     var ua = navigator.userAgent || "";
     var os = "other";
@@ -347,7 +360,12 @@
       os = "linux";
     }
 
-    applyOSView(os);
+    // 기타 OS면 기본은 Windows로 보여주고 "다른 OS : macOS"
+    if (os === "linux" || os === "other") {
+      applyOSView("win");
+    } else {
+      applyOSView(os);
+    }
   })();
 
   // macOS 명령어 클립보드 복사
