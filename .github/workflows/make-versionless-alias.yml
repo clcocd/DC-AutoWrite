@@ -2,13 +2,13 @@ name: make-versionless-alias
 
 on:
   release:
-    types: [published]        # 새 릴리스 publish 시 자동 실행
-  workflow_dispatch:          # 수동 실행도 지원
+    types: [published]
+  workflow_dispatch:
     inputs:
-      version:
-        description: "수동 실행 시 쓸 버전 (예: 1.0.0). 비워두면 최신 릴리스 태그 사용."
+      tag:
+        description: "대상 릴리즈 태그 (예: v1.0.0). 비우면 latest 릴리즈 사용"
         required: false
-        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -16,8 +16,12 @@ permissions:
 jobs:
   alias:
     runs-on: ubuntu-latest
+
+    # ✅ 여기서 repo를 고정으로 전달 (owner/repo 형태)
+    env:
+      GH_REPO: ${{ github.repository }}
+
     steps:
-      - uses: actions/checkout@v4
       - name: Decide tag
         id: vars
         env:
@@ -28,15 +32,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # release 이벤트면 그 태그를 사용
           if [[ -n "${RELEASE_TAG:-}" ]]; then
             TAG="$RELEASE_TAG"
-          # 수동 실행이면 입력 태그 우선
           elif [[ -n "${INPUT_TAG:-}" ]]; then
             TAG="$INPUT_TAG"
-          # 둘 다 없으면 최신 릴리즈 태그 조회
           else
-            TAG="$(gh release view --json tagName -q .tagName)"
+            # ✅ repo를 명시했으니 .git 없어도 OK
+            TAG="$(gh release view --repo "$GH_REPO" --json tagName -q .tagName)"
           fi
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
@@ -46,13 +48,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.vars.outputs.tag }}
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p work
           cd work
 
-          gh release download "$TAG" \
+          # ✅ repo를 명시
+          gh release download "$TAG" --repo "$GH_REPO" \
             --pattern "*mac*aarch64*.zip"
+
           ls -la
 
           AARCH64_ZIP="$(ls -1 *mac*aarch64*.zip | head -n 1)"
@@ -64,14 +69,15 @@ jobs:
 
           cp -f "$AARCH64_ZIP" dcautowrite-mac-aarch64.zip
 
-          ls -la
-
       - name: Upload alias assets back to the same release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.vars.outputs.tag }}
+        shell: bash
         run: |
           set -euo pipefail
-          gh release upload "$TAG" \
+
+          # ✅ repo를 명시
+          gh release upload "$TAG" --repo "$GH_REPO" \
             work/dcautowrite-mac-aarch64.zip \
             --clobber
