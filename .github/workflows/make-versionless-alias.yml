@@ -2,13 +2,13 @@ name: make-versionless-alias
 
 on:
   release:
-    types: [published]
-  workflow_dispatch:
+    types: [published]        # 새 릴리스 publish 시 자동 실행
+  workflow_dispatch:          # 수동 실행도 지원
     inputs:
-      tag:
-        description: "대상 릴리즈 태그 (예: v1.0.0). 비우면 latest 릴리즈 사용"
+      version:
+        description: "수동 실행 시 쓸 버전 (예: 1.0.0). 비워두면 최신 릴리스 태그 사용."
         required: false
-        default: ""
+        type: string
 
 permissions:
   contents: write
