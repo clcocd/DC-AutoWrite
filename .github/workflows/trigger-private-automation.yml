@@ -1,0 +1,28 @@
+name: Trigger private automation (repo A)
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch workflow in repo A
+        env:
+          PAT: ${{ secrets.DISPATCH_PAT }}
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_ID: ${{ github.event.release.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # repo A 워크플로 파일명(아래 repo A에 만들 파일명과 동일하게)
+          WORKFLOW_FILE="sync-from-repoB.yml"
+
+          curl -sS -X POST \
+            -H "Authorization: token ${PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/clcocd/DC-AutoWriteProject/actions/workflows/${WORKFLOW_FILE}/dispatches" \
+            -d "{\"ref\":\"main\",\"inputs\":{\"tag\":\"${TAG}\",\"release_id\":\"${RELEASE_ID}\"}}" \
+            > /dev/null
