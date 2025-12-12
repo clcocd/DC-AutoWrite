@@ -52,7 +52,7 @@ jobs:
           cd work
 
           gh release download "$TAG" \
-            --pattern "*mac*aarch64*.zip" \
+            --pattern "*mac*aarch64*.zip"
           ls -la
 
           AARCH64_ZIP="$(ls -1 *mac*aarch64*.zip | head -n 1)
@@ -73,5 +73,5 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" \
-            work/dcautowrite-mac-aarch64.zip \
+            work/dcautowrite-mac-aarch64.zip
             --clobber
