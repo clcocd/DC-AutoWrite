@@ -57,7 +57,7 @@ jobs:
 
           AARCH64_ZIP="$(ls -1 *mac*aarch64*.zip | head -n 1)"
 
-          if [ -z "${AARCH64_ZIP:-}"]; then
+          if [[ -z "${AARCH64_ZIP:-}"]]; then
             echo "필요한 mac zip을 못 찾았어요. 패턴/파일명을 확인하세요."
             exit 1
           fi
@@ -73,5 +73,5 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" \
-            work/dcautowrite-mac-aarch64.zip
+            work/dcautowrite-mac-aarch64.zip \
             --clobber
