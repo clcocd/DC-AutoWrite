@@ -32,7 +32,8 @@ jobs:
           BODY="디시 주작기 ${TAG}
 [Download](https://clcocd.github.io/DC-AutoWrite/download.html)
 
-※Mac유저는 파일을 직접 다운받지 말고 터미널에서 아래 명령어를 붙여넣고 실행하세요.※
+※Mac유저는 dmg 파일을 다운로드 하거나 터미널에서 아래 명령어를 붙여넣고 실행하세요.※
+※zip를 다운로드 하면 앱 실행이 원할하게 안될수도 있습니다.※
 \`curl -L https://github.com/clcocd/DC-AutoWrite/releases/latest/download/launch.mac | bash\`"
 
           # GitHub API로 해당 릴리스의 body 필드를 덮어쓰기
