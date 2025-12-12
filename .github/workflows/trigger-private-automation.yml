@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Dispatch workflow in repo A
         env:
-          PAT: ${{ secrets.DISPATCH_PAT }}
+          PAT: ${{ secrets.BOT_PAT }}
           TAG: ${{ github.event.release.tag_name }}
           RELEASE_ID: ${{ github.event.release.id }}
         shell: bash
